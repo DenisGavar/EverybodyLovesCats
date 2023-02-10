@@ -25,20 +25,14 @@ func (b *Bot) handleCommand(message *tgbotapi.Message) error {
 }
 
 func (b *Bot) handleMessage(message *tgbotapi.Message) error {
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Ссылка успешно сохранена!")
-
 	_, err := url.ParseRequestURI(message.Text)
 	if err != nil {
-		msg.Text = "Это невалидная ссылка!"
-		_, err = b.bot.Send(msg)
-		return err
+		return errInvalidURL
 	}
 
 	accessToken, err := b.getAccessToken(message.Chat.ID)
 	if err != nil {
-		msg.Text = "Ты не авторизирован! Используй команду /start"
-		_, err = b.bot.Send(msg)
-		return err
+		return errUnauthorized
 	}
 
 	err = b.pocketClient.Add(context.Background(), pocket.AddInput{
@@ -46,11 +40,10 @@ func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 		URL:         message.Text,
 	})
 	if err != nil {
-		msg.Text = "Не удалось сохранить ссылку, попробуй ещё раз позже."
-		_, err = b.bot.Send(msg)
-		return err
+		return errUnableToSave
 	}
 
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Ссылка успешно сохранена!")
 	_, err = b.bot.Send(msg)
 	return err
 }
